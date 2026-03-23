@@ -1,6 +1,7 @@
 from datetime import date as _date
 from pathlib import Path
 from models import DayRecommendation, TripContext
+import os
 import subprocess
 import sys
 try:
@@ -221,27 +222,48 @@ def display_rich(context, start_date, end_date, recommendations, trip_packing,
     narratives = "\n\n".join(_clothing_narrative(rec) for rec in recommendations)
 
     #call claude to get the suggestions
-    proc = subprocess.run(
-    [
-                            "Claude",
-                            "based on the trip day weather forcast and cloth suggestions:"+narratives+", this folder have 3 pictures, please let me know which I should take during the trip? not too long explain   ",#"read claude.md",#
-                            "--dangerously-skip-permissions",
-                            "--print",
-                            "--verbose",
-                            "--output-format",
-                            "text"#"stream-json",
-    ],
-    cwd="/Users/zhangs/Documents/NUS-MTEC/GP-2 (existingForcast+history)/img",#task-schedule-processor",
-    check=False,
-    capture_output=True,
-    text=True,
-    )
+    if False:
+        proc = subprocess.run(
+        [
+                                "Claude",
+                                "based on the trip day weather forcast and cloth suggestions:"+narratives+", this folder have 3 pictures, please let me know which I should take during the trip? not too long explain   ",#"read claude.md",#
+                                "--dangerously-skip-permissions",
+                                "--print",
+                                "--verbose",
+                                "--output-format",
+                                "text"#"stream-json",
+        ],
+        cwd="/Users/zhangs/Documents/NUS-MTEC/GP-2 (existingForcast+history)/img",#task-schedule-processor",
+        check=False,
+        capture_output=True,
+        text=True,
+        )
 
-    out = (proc.stdout or "").strip()
-    print("out:", out)
-    err = (proc.stderr or "").strip()
-    print("err:", err)
-    msg = out or err or f"Claude playbook finished (exit code {proc.returncode})."
+        out = (proc.stdout or "").strip()
+        print("out:", out)
+        err = (proc.stderr or "").strip()
+        print("err:", err)
+        msg = out or err or f"Claude playbook finished (exit code {proc.returncode})."
+
+    else:
+
+        from google import genai
+        from google.genai import types
+        import PIL.Image                                                                   
+        
+        client = genai.Client(api_key="AIzaSyAXA0iqpp2dU2dLRDIcK26FiOl6lCCh0xk")                                           
+                        
+        #img = PIL.Image.open("img/IMG_1.jpg")
+        images = [PIL.Image.open(f"img/IMG_{i}.jpg") for i in range(3)]
+
+        response = client.models.generate_content(                                         
+            model="gemini-2.5-flash",
+            contents=["based on the trip day weather forcast and cloth suggestions:"+narratives+", please let me know what is this picture weight and volume ,should I take it during the trip? not too long explain", *images]  # PIL Image works directly             
+        )                                                                                  
+        print(response.text)
+        msg = response.text
+    
+
 
 
     console.print(Panel(msg, title="[bold blue] Suggestions[/]", border_style="blue"))
