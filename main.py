@@ -7,7 +7,7 @@ Usage:
     python main.py --city "Singapore" --start 2026-03-15 --end 2026-03-20 --purpose business --chart
 
     # Custom historical prediction (any future date):
-    python main.py --city "Tokyo" --start 2026-07-10 --end 2026-07-15 --purpose tourism --method historical --chart
+    python main.py --city "Tokyo" --start 2026-07-10 --end 2026-07-15 --purpose tourism --chart
 
     # Retrain the recommendation model:
     python main.py --retrain
@@ -31,7 +31,6 @@ import requests
 
 
 VALID_PURPOSES = ("business", "tourism", "visiting")
-VALID_METHODS  = ("forecast", "historical")
 MAX_FORECAST_DAYS = 16
 
 
@@ -45,8 +44,6 @@ def parse_args():
     parser.add_argument("--end",     help="Travel end date (YYYY-MM-DD)")
     parser.add_argument("--purpose", choices=VALID_PURPOSES,
                         help="Trip purpose: business, tourism, or visiting")
-    parser.add_argument("--method",  default="forecast", choices=VALID_METHODS,
-                        help="forecast (default, ≤16 days ahead) or historical (any date)")
     parser.add_argument("--years",   type=int, default=10, metavar="N",
                         help="[historical] years of archive data to use (default: 10)")
     parser.add_argument("--chart",   action="store_true",
@@ -73,7 +70,6 @@ def validate_dates_forecast(start_str, end_str):
         sys.exit(
             f"Error: '{start_str}' is beyond the {MAX_FORECAST_DAYS}-day forecast window "
             f"(max: {future_limit}).\n"
-            f"Tip: use --method historical for trips further ahead."
         )
     if end > future_limit:
         print(f"[Warning] End date clamped to forecast limit ({future_limit}).")
@@ -113,9 +109,6 @@ def main():
             sys.exit(f"Error: {flag} is required.")
 
     # ── Date validation ────────────────────────────────────────────────────────
-    if args.method == "forecast":
-        start_date, end_date = validate_dates_forecast(args.start, args.end)
-    else:
         start_date, end_date = validate_dates_historical(args.start, args.end, args.years)
 
     # ── Geocoding ──────────────────────────────────────────────────────────────
@@ -128,18 +121,12 @@ def main():
 
     # ── Weather data ───────────────────────────────────────────────────────────
     try:
-        if args.method == "historical":
-            print(f"Running historical prediction for {start_date} → {end_date}...")
-            forecasts = get_historical_forecast(
-                lat=loc["latitude"], lon=loc["longitude"], timezone=loc["timezone"],
-                start_date=start_date, end_date=end_date, n_years=args.years,
-            )
-        else:
-            print(f"Fetching live forecast for {start_date} → {end_date}...")
-            forecasts = get_forecast(
-                lat=loc["latitude"], lon=loc["longitude"], timezone=loc["timezone"],
-                start_date=start_date, end_date=end_date,
-            )
+        print(f"Running historical prediction for {start_date} → {end_date}...")
+        forecasts = get_historical_forecast(
+            lat=loc["latitude"], lon=loc["longitude"], timezone=loc["timezone"],
+            start_date=start_date, end_date=end_date, n_years=args.years,
+        )
+
     except (ValueError, ConnectionError) as e:
         sys.exit(f"Error: {e}")
 
@@ -152,12 +139,11 @@ def main():
 
 
     # ── Display ────────────────────────────────────────────────────────────────
-    display(context, start_date, end_date, recommendations, trip_packing,
-            method=args.method, n_years=args.years if args.method == "historical" else None)
+    display(context, start_date, end_date, recommendations, trip_packing, n_years=args.years)
 
     # ── Chart ──────────────────────────────────────────────────────────────────
     if args.chart:
-        chart_path = plot_forecast(forecasts, context, start_date, end_date, method=args.method)
+        chart_path = plot_forecast(forecasts, context, start_date, end_date)
         print(f"\nChart saved → {chart_path}")
 
 
