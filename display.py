@@ -82,8 +82,7 @@ def _alert_color(alerts: list) -> str:
 # ── Matplotlib forecast chart ─────────────────────────────────────────────────
 
 def plot_forecast(forecasts: list, context: TripContext,
-                  start_date: str, end_date: str,
-                  method: str = "forecast") -> Path:
+                  start_date: str, end_date: str) -> Path:
     """
     Generate a 3-panel chart:
       1. Temperature band (min/max fill) + average line
@@ -104,7 +103,6 @@ def plot_forecast(forecasts: list, context: TripContext,
 
     method_label = (
         f"Historical Prediction (past climate avg + trend)"
-        if method == "historical" else "Live Forecast"
     )
     title = (f"{context.city}, {context.country}  |  "
              f"{start_date} → {end_date}  |  {method_label}")
@@ -171,14 +169,11 @@ def plot_forecast(forecasts: list, context: TripContext,
 
 # ── Terminal display ──────────────────────────────────────────────────────────
 
-def display_rich(context, start_date, end_date, recommendations, trip_packing,
-                 method="forecast", n_years=None):
+def display_rich(context, start_date, end_date, recommendations, trip_packing, n_years=None):
     console = Console()
 
-    if method == "historical":
-        method_tag = f"[yellow]Historical Prediction ({n_years}yr avg + trend)[/]"
-    else:
-        method_tag = "[green]Live Forecast[/]"
+    method_tag = f"[yellow]Historical Prediction ({n_years}yr avg + trend)[/]"
+
     header = (
         f"[bold]Trip:[/] {context.city}, {context.country}  |  "
         f"[bold]Dates:[/] {_fmt_date(start_date)} → {_fmt_date(end_date)}  |  "
@@ -256,12 +251,12 @@ def display_rich(context, start_date, end_date, recommendations, trip_packing,
         #img = PIL.Image.open("img/IMG_1.jpg")
         images = [PIL.Image.open(f"img/IMG_{i}.jpg") for i in range(3)]
 
-        response = client.models.generate_content(                                         
-            model="gemini-2.5-flash",
-            contents=["based on the trip day weather forcast and cloth suggestions:"+narratives+", please let me know what is this picture weight and volume ,should I take it during the trip? not too long explain", *images]  # PIL Image works directly             
-        )                                                                                  
-        print(response.text)
-        msg = response.text
+        response = ""#client.models.generate_content(                                         
+            #model="gemini-2.5-flash",
+            #contents=["based on the trip day weather forcast and cloth suggestions:"+narratives+", please let me know what is this picture weight and volume ,should I take it during the trip? not too long explain", *images]  # PIL Image works directly             
+        #)                                                                                  
+        #print(response.text)
+        msg ="test"#response.text
     
 
 
@@ -269,15 +264,13 @@ def display_rich(context, start_date, end_date, recommendations, trip_packing,
     console.print(Panel(msg, title="[bold blue] Suggestions[/]", border_style="blue"))
 
 
-def display_plain(context, start_date, end_date, recommendations, trip_packing,
-                  method="forecast", n_years=None):
+def display_plain(context, start_date, end_date, recommendations, trip_packing, n_years=None):
     sep = "-" * 60
     print(sep)
     print("Travel Weather Advisor")
     print(f"Trip   : {context.city}, {context.country}")
     print(f"Dates  : {start_date} to {end_date}")
     print(f"Purpose: {context.purpose.title()}")
-    print(f"Method : {'Historical Prediction (' + str(n_years) + 'yr)' if method == 'historical' else 'Live Forecast'}")
     print(sep)
     for rec in recommendations:
         print(f"\n{_fmt_date(rec.date)} — {rec.summary}")
@@ -300,9 +293,8 @@ def display_plain(context, start_date, end_date, recommendations, trip_packing,
     print(sep)
 
 
-def display(context, start_date, end_date, recommendations, trip_packing,
-            method="forecast", n_years=None):
+def display(context, start_date, end_date, recommendations, trip_packing, n_years=None):
     if RICH_AVAILABLE:
-        display_rich(context, start_date, end_date, recommendations, trip_packing, method, n_years)
+        display_rich(context, start_date, end_date, recommendations, trip_packing, n_years)
     else:
-        display_plain(context, start_date, end_date, recommendations, trip_packing, method, n_years)
+        display_plain(context, start_date, end_date, recommendations, trip_packing, n_years)

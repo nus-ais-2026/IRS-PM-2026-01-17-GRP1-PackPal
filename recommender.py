@@ -1,16 +1,24 @@
 """
-Recommendation Engine — LightGBM Multi-Label Classifier
-========================================================
+Recommendation Engine — Multi-Label Classifier
+===============================================
 Architecture:
   - Fixed vocabulary of 37 clothing/packing items
   - Features: temperature stats, precipitation, wind, UV, cloud cover,
     snow/thunder flags, trip purpose (10 features total)
   - Labels: binary per item (include / don't include)
-  - Model: sklearn MultiOutputClassifier wrapping LightGBMClassifier
-  - Persistence: saved to model/recommender.joblib via joblib
   - Training data: 15,000 synthetic samples generated from weather rules,
     with random noise to learn smooth decision boundaries instead of hard cutoffs
   - Auto-trains on first run; subsequent runs load from cache (~50ms)
+
+Model type options (pass model_type= to recommend_day / train_and_save):
+  "lgbm"          (default) MultiOutputClassifier(LGBMClassifier) — gradient
+                  boosting; highest accuracy on synthetic data.
+  "random_forest" MultiOutputClassifier(RandomForestClassifier) — bagging
+                  ensemble; no learning-rate tuning needed, robust to noise.
+  "knn"           MultiOutputClassifier(KNeighborsClassifier) — instance-based;
+                  no training step, looks up k most similar weather conditions.
+  "rules"         Direct rule evaluation via _rule_labels — no ML at all;
+                  instant, deterministic, useful as a reference baseline.
 
 Alerts remain rule-based — safety-critical info should never be ML-gated.
 """
@@ -20,7 +28,16 @@ import joblib
 from pathlib import Path
 from models import DayForecast, TripContext, DayRecommendation
 
-MODEL_PATH = Path(__file__).parent / "model" / "recommender.joblib"
+MODEL_PATH = Path(__file__).parent / "model" / "recommender.joblib"  # legacy / lgbm
+
+_MODEL_DIR = Path(__file__).parent / "model"
+MODEL_PATHS = {
+    "lgbm":          _MODEL_DIR / "recommender.joblib",
+    "random_forest": _MODEL_DIR / "recommender_random_forest.joblib",
+    "knn":           _MODEL_DIR / "recommender_knn.joblib",
+}
+
+VALID_MODEL_TYPES = ("lgbm", "random_forest", "knn", "rules")
 
 # ── Item vocabulary ───────────────────────────────────────────────────────────
 # Order matters: indices 0..N_CLOTHING-1 = clothing, rest = packing
@@ -237,56 +254,95 @@ def _generate_training_data(n_samples: int = 15_000, seed: int = 42):
 
 # ── Training ──────────────────────────────────────────────────────────────────
 
-def train_and_save(verbose: bool = True) -> object:
+def train_and_save(verbose: bool = True, model_type: str = "lgbm") -> object:
     """
-    Generate synthetic training data, fit MultiOutputClassifier(LGBMClassifier),
-    and persist to MODEL_PATH via joblib.
-    """
+    Generate synthetic training data, fit the selected classifier, and persist
+    to the corresponding model file via joblib.
 
-    from lightgbm import LGBMClassifier
+    model_type: "lgbm" (default), "random_forest", "knn"
+                ("rules" needs no training — pass it to recommend_day directly)
+    """
     from sklearn.multioutput import MultiOutputClassifier
 
-    #if verbose:
     print("[Recommender] Generating training data...")
     X, Y = _generate_training_data()
+    print(f"[Recommender] Training '{model_type}' on {len(X):,} samples × {Y.shape[1]} items...")
 
-    #if verbose:
-    print(f"[Recommender] Training LightGBM on {len(X):,} samples × {Y.shape[1]} items...")
+    if model_type == "lgbm":
+        from lightgbm import LGBMClassifier
+        clf = MultiOutputClassifier(LGBMClassifier(
+            n_estimators=200,
+            max_depth=6,
+            learning_rate=0.05,
+            num_leaves=31,
+            min_child_samples=20,
+            verbose=-1,
+        ), n_jobs=-1)
 
-    lgbm = LGBMClassifier(
-        n_estimators=200,
-        max_depth=6,
-        learning_rate=0.05,
-        num_leaves=31,
-        min_child_samples=20,
-        verbose=-1,
-    )
-    model = MultiOutputClassifier(lgbm, n_jobs=-1)
-    model.fit(X, Y)
+    elif model_type == "random_forest":
+        # Bagging ensemble — robust to label noise, no learning-rate tuning needed.
+        # RandomForestClassifier supports multi-output natively but we wrap it for
+        # a consistent interface with lgbm/knn.
+        from sklearn.ensemble import RandomForestClassifier
+        clf = MultiOutputClassifier(RandomForestClassifier(
+            n_estimators=200,
+            max_depth=12,
+            min_samples_leaf=10,
+            n_jobs=-1,
+            random_state=42,
+        ), n_jobs=-1)
 
-    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model, MODEL_PATH)
+    elif model_type == "knn":
+        # Instance-based: no explicit training, stores the dataset and finds
+        # k most similar weather conditions at query time.
+        from sklearn.neighbors import KNeighborsClassifier
+        clf = MultiOutputClassifier(KNeighborsClassifier(
+            n_neighbors=15,
+            weights="distance",
+            metric="euclidean",
+        ))
+
+    else:
+        raise ValueError(
+            f"Unknown model_type {model_type!r}. Choose from: {list(MODEL_PATHS)}"
+        )
+
+    clf.fit(X, Y)
+
+    path = MODEL_PATHS[model_type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(clf, path)
     if verbose:
-        print(f"[Recommender] Model saved → {MODEL_PATH}")
-    return model
+        print(f"[Recommender] Model saved → {path}")
+    return clf
 
 
 # ── Lazy model loading ────────────────────────────────────────────────────────
 
-_model = None
+_model_cache: dict = {}
 
 
-def _load_or_train():
-    global _model
-    if _model is not None:
-        return _model
-    if MODEL_PATH.exists():
-        print("loading model from", MODEL_PATH)
-        _model = joblib.load(MODEL_PATH)
+def _load_or_train(model_type: str = "lgbm"):
+    """Load model from disk if available, otherwise train and save it."""
+    if model_type == "rules":
+        return None  # rules mode needs no model
+
+    if model_type in _model_cache:
+        return _model_cache[model_type]
+
+    path = MODEL_PATHS.get(model_type)
+    if path is None:
+        raise ValueError(
+            f"Unknown model_type {model_type!r}. Choose from: {VALID_MODEL_TYPES}"
+        )
+
+    if path.exists():
+        print(f"[Recommender] Loading '{model_type}' model from {path}")
+        _model_cache[model_type] = joblib.load(path)
     else:
-        print("training model")
-        _model = train_and_save()
-    return _model
+        print(f"[Recommender] No saved model for '{model_type}' — training now...")
+        _model_cache[model_type] = train_and_save(model_type=model_type)
+    return _model_cache[model_type]
 
 
 # ── Alerts (rule-based — safety info should not be ML-gated) ─────────────────
@@ -328,10 +384,17 @@ def _day_summary(forecast: DayForecast) -> str:
 #    packing: list = field(default_factory=list)
 #    alerts: list = field(default_factory=list)
 #    summary: str = ""
-def recommend_day(forecast: DayForecast, context: TripContext) -> DayRecommendation:
-    model = _load_or_train()
+def recommend_day(forecast: DayForecast, context: TripContext,
+                  model_type: str = "lgbm") -> DayRecommendation:
     feat = _features(forecast, context.purpose)  # single-row DataFrame
-    pred = model.predict(feat)[0]  # shape (37,)
+
+    if model_type == "rules":
+        # Bypass ML entirely — evaluate _rule_labels directly.
+        # Deterministic, instant, and the reference ground truth for all ML models.
+        pred = _rule_labels(*feat.to_numpy()[0])
+    else:
+        model = _load_or_train(model_type)
+        pred = model.predict(feat)[0]  # shape (37,)
 
     clothing = [ALL_ITEMS[i] for i in range(N_CLOTHING) if pred[i] == 1]
     packing  = [ALL_ITEMS[i] for i in range(N_CLOTHING, len(ALL_ITEMS)) if pred[i] == 1]
