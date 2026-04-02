@@ -46,10 +46,16 @@ def parse_args():
                         help="Trip purpose: business, tourism, or visiting")
     parser.add_argument("--years",   type=int, default=10, metavar="N",
                         help="[historical] years of archive data to use (default: 10)")
+    parser.add_argument("--method",  default="theil_sen",
+                        choices=["ewm_ols", "holt_des", "theil_sen", "gpr"],
+                        help="prediction algorithm: theil_sen (default), ewm_ols, holt_des, gpr")
     parser.add_argument("--chart",   action="store_true",
                         help="Generate and save a matplotlib forecast chart (PNG)")
+    parser.add_argument("--model",   default="lgbm",
+                        choices=["lgbm", "random_forest", "knn", "rules"],
+                        help="recommendation algorithm: lgbm (default), random_forest, knn, rules")
     parser.add_argument("--retrain", action="store_true",
-                        help="Force retrain the LightGBM recommendation model and exit")
+                        help="Force retrain the recommendation model (respects --model)")
     return parser.parse_args()
 
 
@@ -97,9 +103,12 @@ def main():
 
     # ── Retrain-only mode ──────────────────────────────────────────────────────
     if args.retrain:
-        from recommender import train_and_save, MODEL_PATH
-        MODEL_PATH.unlink(missing_ok=True)
-        train_and_save(verbose=True)
+        from recommender import train_and_save, MODEL_PATHS
+        if args.model == "rules":
+            print("'rules' model type needs no training — nothing to do.")
+            return
+        MODEL_PATHS[args.model].unlink(missing_ok=True)
+        train_and_save(verbose=True, model_type=args.model)
         return
 
     # ── Validate required args for normal run ──────────────────────────────────
@@ -125,6 +134,7 @@ def main():
         forecasts = get_historical_forecast(
             lat=loc["latitude"], lon=loc["longitude"], timezone=loc["timezone"],
             start_date=start_date, end_date=end_date, n_years=args.years,
+            method=args.method,
         )
 
     except (ValueError, ConnectionError) as e:
@@ -132,7 +142,7 @@ def main():
 
     # ── Recommendations ────────────────────────────────────────────────────────
     context = TripContext(purpose=args.purpose, city=loc["name"], country=loc["country"])
-    recommendations = [recommend_day(f, context) for f in forecasts]
+    recommendations = [recommend_day(f, context, model_type=args.model) for f in forecasts]
     trip_packing    = build_trip_packing_list(recommendations)
 
 
