@@ -11,6 +11,10 @@ Usage:
 
     # Retrain the recommendation model:
     python main.py --retrain
+
+    # Analyse wardrobe photos against the forecast:
+    python main.py --city "Singapore" --start 2026-05-01 --end 2026-05-05 --images img/outfit1.jpg img/outfit2.jpg
+
 """
 
 import argparse
@@ -28,6 +32,9 @@ import sys
 import threading
 import base64
 import requests
+from image_recognition import analyse_outfits
+from packing_optimizer import optimise_from_recommendations, optimise_items
+import os
 
 
 VALID_PURPOSES = ("business", "tourism", "visiting")
@@ -54,6 +61,20 @@ def parse_args():
     parser.add_argument("--model",   default="lgbm",
                         choices=["lgbm", "random_forest", "knn", "rules"],
                         help="recommendation algorithm: lgbm (default), random_forest, knn, rules")
+    parser.add_argument("--images",  nargs="+", metavar="PATH",
+                        help="Wardrobe photo paths to analyse against the forecast")
+    parser.add_argument("--vision",  default="yolo",
+                        choices=["yolo", "google", "clip", "both"],
+                        help="Image recognition backend: yolo (default), google, clip, both")
+    '''
+    parser.add_argument("--optimize", action="store_true",
+                        help="Run GA → Knapsack → Summary optimization pipeline")
+    parser.add_argument("--weight-limit", type=float, default=20.0, metavar="KG",
+                        help="Baggage weight limit in kg for optimization (default: 20.0)")
+    parser.add_argument("--optimize-items", nargs="+", metavar="ITEM",
+                        help="Standalone optimization: provide item names directly "
+                             "(skips recommender; use with --weight-limit)")   
+                             ''' 
     parser.add_argument("--retrain", action="store_true",
                         help="Force retrain the recommendation model (respects --model)")
     return parser.parse_args()
@@ -145,6 +166,10 @@ def main():
     recommendations = [recommend_day(f, context, model_type=args.model) for f in forecasts]
     trip_packing    = build_trip_packing_list(recommendations)
 
+
+    # ── Image recognition ─────────────────────────────────────────────────────
+    if args.images:
+        analyse_outfits(args.images, recommendations, context, args.vision)
 
 
 
