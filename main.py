@@ -18,7 +18,9 @@ Usage:
 """
 
 import argparse
+import json
 import sys
+from dataclasses import asdict
 from datetime import date, timedelta
 
 from geocoder import get_location
@@ -80,6 +82,8 @@ def parse_args():
                         help="Standalone optimization: provide item names directly "
                              "(skips recommender; use with --weight-limit)")   
                              ''' 
+    parser.add_argument("--json",    action="store_true",
+                        help="Save forecasts, recommendations, and packing list as a JSON file")
     parser.add_argument("--retrain", action="store_true",
                         help="Force retrain the recommendation model (respects --model)")
     return parser.parse_args()
@@ -171,13 +175,36 @@ def main():
     recommendations = [recommend_day(f, context, model_type=args.model) for f in forecasts]
     trip_packing    = build_trip_packing_list(recommendations)
 
-
     # ── Image recognition (optional — only when --images is passed) ─────────────
+    wardrobe_items: list = []
     if args.images is not None and str(args.images).strip():
         outfit_paths = collect_image_paths_from_folder(args.images)
         if outfit_paths:
-            analyse_outfits(outfit_paths, recommendations, context, args.vision)
+            wardrobe_items = analyse_outfits(outfit_paths, recommendations, context, args.vision)
 
+    # ── JSON export ────────────────────────────────────────────────────────────
+    if args.json:
+        from pathlib import Path
+        payload = {
+            "context":         asdict(context),
+            "start_date":      start_date,
+            "end_date":        end_date,
+            "method":          args.method,
+            "model":           args.model,
+            "forecasts":       [asdict(f) for f in forecasts],
+            "recommendations": [asdict(r) for r in recommendations],
+            "trip_packing":    trip_packing,
+            "wardrobe_items":  wardrobe_items,
+            "wardrobe_items_weight_volume": {
+                "total_weight_g": sum(item.get("weight_g", 0) for item in wardrobe_items),
+                "total_volume_l": round(sum(item.get("volume_l", 0.0) for item in wardrobe_items), 1),
+                "item_count":     len(wardrobe_items),
+            },
+        }
+        #city_slug  = loc["name"].lower().replace(" ", "_").replace(",", "")
+        json_path  = Path(__file__).parent / f"output.json"
+        json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(f"\nJSON saved → {json_path}")
 
 
     # ── Display ────────────────────────────────────────────────────────────────
