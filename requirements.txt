@@ -1,0 +1,51 @@
+# ============================
+# UI & App Framework
+# ============================
+streamlit==1.42.0          # Core UI framework for PackPal, runs on HF Spaces
+pandas==2.2.3              # Data manipulation for packing lists, schedules
+numpy==1.26.4              # Numerical backbone for math + CV preprocessing
+plotly==6.0.1              # Interactive charts for CLO scores & evaluation
+
+# ============================
+# CV & Weather 
+# ============================
+ultralytics==8.3.62        # YOLOv11/YOLO26 segmentation models
+# --- HF Spaces Optimization: Install CPU versions only ---
+--index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1               # PyTorch deep learning framework
+torchvision==0.20.1        # Image transforms & pretrained CV utilities
+# ---------------------------------------------------------
+opencv-python-headless==4.10.0.84  # Image processing (headless for HF Spaces)
+requests==2.32.3           # Fetch APIs (e.g., weather data)
+pillow==11.0.0             # Image manipulation (resize, crop, augment)
+sentence-transformers==3.1.1 # Embeddings for slot detection & semantic similarity
+scikit-image==0.24.0       # REQUIRED for LIME image explanations & preprocessing
+
+# ============================
+# Optimization & Math
+# ============================
+ortools==9.11.4210         # Google OR-Tools, 3D bin packing solver
+deap==1.4.2                # Genetic algorithms (NSGA-II for multi-objective optimization)
+scipy==1.14.1              # Scientific computing, CLO thermal calculations
+scikit-learn==1.6.0        # ML utilities (normalization, clustering, evaluation)
+
+# ============================
+# Logic, Graph & NLU
+# ============================
+langchain==0.3.7           # LLM orchestration framework
+langchain-groq==0.2.1      # Groq Cloud API integration
+groq==0.11.0               # Explicitly pin the base Groq client
+langchain-community==0.3.5 # Community-contributed LangChain modules
+pydantic==2.9.2            # Schema enforcement for structured slot filling
+neo4j==5.26.0              # Graph DB client for packing rules
+supabase==2.10.0           # SQL + S3 storage client
+boto3==1.35.0              # AWS SDK, required for Cloudflare R2 connection
+python-dotenv==1.0.1       # Loads .env secrets safely
+
+# ============================
+# XAI & Evaluation
+# ============================
+shap==0.46.0               # Explainable AI (global feature importance)
+lime==0.2.0.1              # Local model explanations (image/text tabular)
+matplotlib==3.10.0         # Static plots
+seaborn==0.13.2            # Statistical visualization
