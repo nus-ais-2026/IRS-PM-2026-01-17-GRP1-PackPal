@@ -381,6 +381,78 @@ def _rule_based_advice(garment_label: str,
             "matches the recommended items for your trip.")
 
 
+# ── Garment property estimation ──────────────────────────────────────────────
+
+_GARMENT_RULES = [
+    # (keywords,                                    material,          thickness, weight_g, volume_l)
+    (("heavy winter coat", "down jacket", "parka", "overcoat", "trench coat"),
+                                                    "synthetic/down",  "thick",   1500,     5.0),
+    (("jacket", "blazer", "windbreaker", "anorak", "raincoat", "waterproof"),
+                                                    "polyester",       "medium",   600,     3.0),
+    (("sweater", "sweatshirt", "hoodie", "fleece", "cardigan", "pullover"),
+                                                    "fleece/wool",     "medium",   550,     3.0),
+    (("jeans", "denim"),                            "denim",           "medium",   700,     2.0),
+    (("trousers", "pants", "chinos"),               "cotton",          "medium",   500,     2.0),
+    (("shorts", "miniskirt", "skirt"),              "cotton/polyester","thin",     280,     1.0),
+    (("t-shirt", "tee", "polo", "jersey", "tank", "blouse", "shirt"),
+                                                    "cotton",          "thin",     200,     1.0),
+    (("dress", "formal wear"),                      "cotton/polyester","thin",     400,     1.5),
+    (("suit", "business attire"),                   "wool blend",      "medium",   900,     3.5),
+    (("boot",),                                     "leather/rubber",  "thick",   1000,     3.5),
+    (("shoe", "sneaker", "runner", "loafer"),        "leather/mesh",    "medium",   700,     2.5),
+    (("sock",),                                     "cotton/wool",     "thin",      80,     0.2),
+    (("scarf",),                                    "wool/acrylic",    "thin",     150,     0.5),
+    (("glove",),                                    "wool/fleece",     "thin",     100,     0.3),
+    (("hat", "cap"),                                "cotton/wool",     "thin",     120,     0.3),
+    (("umbrella",),                                 "nylon",           "thin",     400,     1.0),
+    (("backpack",),                                 "nylon/polyester", "medium",   800,     8.0),
+]
+
+
+def _rule_based_properties(label: str) -> dict:
+    label_lower = label.lower()
+    for keywords, material, thickness, weight_g, volume_l in _GARMENT_RULES:
+        if any(k in label_lower for k in keywords):
+            return {"material": material, "thickness": thickness,
+                    "weight_g": weight_g, "volume_l": volume_l}
+    return {"material": "unknown", "thickness": "medium", "weight_g": 400, "volume_l": 2.0}
+
+
+def _estimate_garment_properties(label: str, image_path: Path) -> dict:
+    """
+    Estimate material, thickness, weight_g, volume_l for a detected garment.
+    Tries Gemini first (needs GEMINI_API_KEY); falls back to rule-based lookup.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if api_key:
+        try:
+            import json as _json
+            from google import genai
+            from PIL import Image as PILImage
+            client = genai.Client(api_key=api_key)
+            img    = PILImage.open(str(image_path))
+            prompt = (
+                f"This garment has been identified as: {label}.\n"
+                "Return ONLY a JSON object (no markdown, no explanation) with:\n"
+                '  "material": primary fabric (e.g. "cotton", "wool", "polyester", "denim", "down", "leather")\n'
+                '  "thickness": one of "thin", "medium", "thick"\n'
+                '  "weight_g": estimated packed weight in grams (integer)\n'
+                '  "volume_l": estimated packed volume in litres (one decimal)\n'
+            )
+            response = client.models.generate_content(
+                model="gemini-2.5-flash", contents=[prompt, img],
+            )
+            text = response.text.strip()
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            return _json.loads(text)
+        except Exception:
+            pass
+    return _rule_based_properties(label)
+
+
 # ── Display helpers ───────────────────────────────────────────────────────────
 
 def _filename_fallback(image_path: Path, note: str = "") -> str:
@@ -484,7 +556,7 @@ def collect_image_paths_from_folder(folder: str) -> List[str]:
 def analyse_outfits(image_paths: List[str],
                     recommendations: List[DayRecommendation],
                     context: TripContext,
-                    vision: str = "yolo") -> None:
+                    vision: str = "yolo") -> List[dict]:
     """
     Analyse each wardrobe photo and print packing advice to the terminal.
 
@@ -494,9 +566,15 @@ def analyse_outfits(image_paths: List[str],
     recommendations: per-day clothing recommendations from recommender.py
     context        : TripContext (city, country, purpose)
     vision         : "yolo" | "google" | "clip" | "both"  (default: "yolo")
+
+    Returns
+    -------
+    List of dicts, one per image:
+        image_name, detected_label, material, thickness, weight_g, volume_l,
+        advice  (and backends dict when vision="both")
     """
     if not image_paths:
-        return
+        return []
 
     vision = vision.lower()
     if vision not in VALID_VISION_MODES:
@@ -504,9 +582,10 @@ def analyse_outfits(image_paths: List[str],
               f"Choose from: {VALID_VISION_MODES}")
         vision = "yolo"
 
-    backends         = ["yolo", "google", "clip"] if vision == "both" else [vision]
-    narrative        = _build_clothing_narrative(recommendations)
+    backends          = ["yolo", "google", "clip"] if vision == "both" else [vision]
+    narrative         = _build_clothing_narrative(recommendations)
     recommender_items = _get_recommender_items()
+    results: List[dict] = []
 
     _print_header(f"Wardrobe Analysis  —  backend: {vision.upper()}")
     for raw_path in image_paths:
@@ -523,14 +602,38 @@ def analyse_outfits(image_paths: List[str],
                 adv = _gemini_advice(lbl, path, narrative, context)
                 advice[backend] = adv or _rule_based_advice(lbl, recommendations)
             _print_both_results(path, labels, advice)
+            # Use yolo label (most specific) for property estimation; fall back to first available
+            primary_label = labels.get("yolo") or next(iter(labels.values()), path.stem)
+            props = _estimate_garment_properties(primary_label, path)
+            results.append({
+                "image_name":     path.name,
+                "backends":       labels,
+                "detected_label": primary_label,
+                "material":       props["material"],
+                "thickness":      props["thickness"],
+                "weight_g":       props["weight_g"],
+                "volume_l":       props["volume_l"],
+                "advice":         advice,
+            })
         else:
             label = _run_backend(vision, path, recommender_items)
             adv   = _gemini_advice(label, path, narrative, context)
             if not adv:
                 adv = _rule_based_advice(label, recommendations)
             _print_single_result(path, vision, label, adv)
+            props = _estimate_garment_properties(label, path)
+            results.append({
+                "image_name":     path.name,
+                "detected_label": label,
+                "material":       props["material"],
+                "thickness":      props["thickness"],
+                "weight_g":       props["weight_g"],
+                "volume_l":       props["volume_l"],
+                "advice":         adv,
+            })
 
     _print_footer(vision)
+    return results
 
 
 def _run_backend(backend: str, image_path: Path,
