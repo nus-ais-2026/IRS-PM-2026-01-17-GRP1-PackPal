@@ -71,8 +71,11 @@ def parse_args():
              "if given, analyse_outfits runs only when the folder has at least one image file",
     )
     parser.add_argument("--vision",  default="yolo",
-                        choices=["yolo", "google", "clip", "both"],
-                        help="Image recognition backend: yolo (default), google, clip, both")
+                        choices=["yolo", "google", "clip", "both", "cloth_tool"],
+                        help="Image recognition backend: yolo (default), google, clip, both, cloth_tool")
+    parser.add_argument("--depth", default="midas_sam",
+                        choices=["midas_sam", "midas", "sam", "rule_based"],
+                        help="Weight/volume estimation method: midas_sam (default), midas, sam, rule_based")
     '''
     parser.add_argument("--optimize", action="store_true",
                         help="Run GA → Knapsack → Summary optimization pipeline")
@@ -180,7 +183,7 @@ def main():
     if args.images is not None and str(args.images).strip():
         outfit_paths = collect_image_paths_from_folder(args.images)
         if outfit_paths:
-            wardrobe_items = analyse_outfits(outfit_paths, recommendations, context, args.vision)
+            wardrobe_items = analyse_outfits(outfit_paths, recommendations, context, args.vision, args.depth)
 
     # ── JSON export ────────────────────────────────────────────────────────────
     if args.json:

@@ -19,6 +19,13 @@ packing advice. Supports three detection backends selectable via --vision:
   both              Runs all three backends on every image and displays each
                     result in a side-by-side comparison table.
 
+  cloth_tool        Trained EfficientNet-B0 multi-task classifier (cloth-tool
+                    package). Predicts 7 attributes (cloth_type, season_group,
+                    material_group, fold_state, weight_class, folded_size_class,
+                    pressed_size_class) plus approx_weight_g and approx_volume_L
+                    regression outputs — skips MiDaS/SAM entirely.
+                    Model: cloth-tool/runs/exp2/best.pt
+
 After detection, the garment label is passed to Gemini (optional, needs
 GEMINI_API_KEY) for narrative packing advice. Falls back to rule-based
 advice if Gemini is unavailable.
@@ -53,7 +60,7 @@ YOLO_CLS_PATH = _HERE / "yolo11n-cls.pt"
 # Falls back to the previous default if the file is missing.
 YOLO_DET_PATH = _HERE / "yolo26x.pt" if (_HERE / "yolo26x.pt").exists() else (_HERE / "yolo11n.pt")
 
-VALID_VISION_MODES = ("yolo", "google", "clip", "both")
+VALID_VISION_MODES = ("yolo", "google", "clip", "both", "cloth_tool")
 
 # Raster files accepted when scanning a wardrobe folder (--images)
 IMAGE_FILE_SUFFIXES = {
@@ -62,6 +69,48 @@ IMAGE_FILE_SUFFIXES = {
 
 # CLIP: if best recommender-item similarity is below this, use generic vocab
 CLIP_RECOMMENDER_THRESHOLD = 0.20
+
+# ── cloth-tool integration ────────────────────────────────────────────────────
+
+CLOTH_TOOL_SRC   = _HERE / "cloth-tool" / "src"
+CLOTH_TOOL_MODEL = _HERE / "cloth-tool" / "runs" / "exp2" / "best.pt"
+
+_CLOTH_TOOL_MODEL_SINGLETON   = None
+_CLOTH_TOOL_TRANSFORM_SINGLETON = None
+_CLOTH_TOOL_DEVICE_SINGLETON    = None
+
+# cloth_type labels (model uses underscores) → readable label
+_CLOTH_TYPE_LABEL: Dict[str, str] = {
+    "t_shirt":    "t-shirt",
+    "shirt":      "shirt",
+    "sweater":    "sweater",
+    "jacket":     "jacket",
+    "coat":       "coat",
+    "down_jacket":"down jacket",
+    "pants":      "trousers",
+    "skirt":      "skirt",
+    "dress":      "dress",
+    "vest":       "vest",
+}
+
+# material_group → key in _FABRIC_AREAL_DENSITY
+_CLOTH_MATERIAL_MAP: Dict[str, str] = {
+    "cotton_like":          "cotton",
+    "knit":                 "cotton/polyester",
+    "denim":                "denim",
+    "wool_like":            "fleece/wool",
+    "padded_down_like":     "synthetic/down",
+    "leather_like":         "leather/rubber",
+    "synthetic_sportswear": "nylon/polyester",
+    "mixed_unknown":        "unknown",
+}
+
+# weight_class → thickness string used in the rest of the system
+_CLOTH_THICKNESS_MAP: Dict[str, str] = {
+    "light":  "thin",
+    "medium": "medium",
+    "heavy":  "thick",
+}
 
 # ── 3D volume / weight estimation ─────────────────────────────────────────────
 
@@ -372,6 +421,106 @@ def _detect_clip(image_path: Path,
 
     except Exception as e:
         return f"(CLIP error: {e})"
+
+
+# ── Backend 4: cloth-tool (trained EfficientNet-B0 multi-task classifier) ─────
+
+def _get_cloth_tool_model():
+    """Lazy-load the cloth-tool model; adds cloth-tool/src to sys.path once."""
+    global _CLOTH_TOOL_MODEL_SINGLETON, _CLOTH_TOOL_TRANSFORM_SINGLETON, _CLOTH_TOOL_DEVICE_SINGLETON
+    if _CLOTH_TOOL_MODEL_SINGLETON is not None:
+        return (_CLOTH_TOOL_MODEL_SINGLETON,
+                _CLOTH_TOOL_TRANSFORM_SINGLETON,
+                _CLOTH_TOOL_DEVICE_SINGLETON)
+
+    import sys
+    src = str(CLOTH_TOOL_SRC)
+    if src not in sys.path:
+        sys.path.insert(0, src)
+
+    from cloth_tool.model import ClothClassifier
+    from cloth_tool.dataset import get_transforms
+
+    _CLOTH_TOOL_DEVICE_SINGLETON = (
+        torch.device("mps")  if torch.backends.mps.is_available() else
+        torch.device("cuda") if torch.cuda.is_available() else
+        torch.device("cpu")
+    )
+    print(f"  [cloth-tool] Loading model on {_CLOTH_TOOL_DEVICE_SINGLETON} ...")
+    _CLOTH_TOOL_MODEL_SINGLETON = ClothClassifier().to(_CLOTH_TOOL_DEVICE_SINGLETON)
+    ckpt = torch.load(str(CLOTH_TOOL_MODEL), map_location=_CLOTH_TOOL_DEVICE_SINGLETON,
+                      weights_only=True)
+    _CLOTH_TOOL_MODEL_SINGLETON.load_state_dict(ckpt["model_state"])
+    _CLOTH_TOOL_MODEL_SINGLETON.eval()
+    _CLOTH_TOOL_TRANSFORM_SINGLETON = get_transforms(train=False)
+    print("  [cloth-tool] Model ready.")
+    return (_CLOTH_TOOL_MODEL_SINGLETON,
+            _CLOTH_TOOL_TRANSFORM_SINGLETON,
+            _CLOTH_TOOL_DEVICE_SINGLETON)
+
+
+def _detect_cloth_tool(image_path: Path) -> dict:
+    """
+    Run the trained cloth-tool classifier on a single image.
+    Returns a dict with cloth_type, season_group, material_group, fold_state,
+    weight_class, folded_size_class, pressed_size_class (each with *_conf),
+    plus approx_weight_g and approx_volume_L regression outputs.
+    Returns an empty dict on error.
+    """
+    if not CLOTH_TOOL_MODEL.exists():
+        print(f"  [cloth-tool] Model not found: {CLOTH_TOOL_MODEL}")
+        return {}
+    try:
+        model, transform, device = _get_cloth_tool_model()   # adds cloth-tool/src to sys.path
+        from cloth_tool.predict import predict_image
+        return predict_image(model, image_path, device, transform)
+    except Exception as e:
+        print(f"  [cloth-tool] error: {e}")
+        return {}
+
+
+def _cloth_tool_readable_label(result: dict) -> str:
+    """Convert cloth_type prediction to a human-readable label string."""
+    raw_type = result.get("cloth_type", "")
+    label    = _CLOTH_TYPE_LABEL.get(raw_type, raw_type.replace("_", " "))
+    conf     = result.get("cloth_type_conf", 0.0)
+    season   = result.get("season_group", "").replace("_", " ")
+    return f"{label} ({season}, cloth-tool {conf:.0%})"
+
+
+def _print_cloth_tool_result(path: Path, result: dict, label: str, advice: str) -> None:
+    """Print the multi-attribute cloth-tool prediction in a rich table."""
+    try:
+        from rich.console import Console
+        from rich.table import Table
+        from rich import box as rbox
+        console = Console()
+        console.print(f"\n  [cyan]File      :[/] {path.name}")
+        console.print(f"  [cyan]Backend   :[/] [bold]CLOTH-TOOL[/]")
+        console.print(f"  [cyan]Detected  :[/] {label}")
+        tbl = Table(box=rbox.SIMPLE, show_header=True, header_style="bold yellow",
+                    title="  Attribute Predictions", title_style="bold cyan")
+        tbl.add_column("Attribute",  style="cyan",  no_wrap=True, width=22)
+        tbl.add_column("Value",      style="white", width=22)
+        tbl.add_column("Conf",       style="green", justify="right", width=6)
+        from cloth_tool.dataset import ATTRIBUTES
+        for attr in ATTRIBUTES:
+            val  = result.get(attr, "—")
+            conf = result.get(f"{attr}_conf", 0.0)
+            bar  = "█" * int(conf * 12)
+            tbl.add_row(attr, val, f"{conf:.0%} {bar}")
+        tbl.add_row("approx_weight_g", f"{result.get('approx_weight_g', 0):.0f} g",  "")
+        tbl.add_row("approx_volume_L", f"{result.get('approx_volume_L', 0):.1f} L",  "")
+        console.print(tbl)
+        console.print(f"  [cyan]Advice    :[/] {advice}")
+    except ImportError:
+        print(f"\n  File    : {path.name}")
+        print(f"  Backend : CLOTH-TOOL")
+        print(f"  Detected: {label}")
+        for k, v in result.items():
+            if not k.endswith("_conf") and k != "image":
+                print(f"  {k:<24}: {v}")
+        print(f"  Advice  : {advice}")
 
 
 # ── Gemini narrative advice ───────────────────────────────────────────────────
@@ -714,16 +863,16 @@ def _estimate_midas_sam(image_path: Path, label: str,
         return None
 
 
-def _estimate_garment_properties(label: str, image_path: Path) -> dict:
+def _estimate_garment_properties(label: str, image_path: Path,
+                                  method: str = "midas_sam") -> dict:
     """
-    Estimate material/thickness then run four volume+weight methods for comparison:
-      rule_based  — static lookup table (baseline, always available)
-      midas       — MiDaS depth + YOLO bbox
-      sam         — SAM precise mask + rule-based thickness
-      midas_sam   — SAM mask area × MiDaS depth range  (best accuracy)
+    Estimate material/thickness then compute weight/volume using the chosen method:
+      midas_sam  — SAM mask area + MiDaS depth corrections  (default, best accuracy)
+      midas      — MiDaS depth corrections over YOLO bbox
+      sam        — SAM pixel-precise mask area, no depth
+      rule_based — static lookup table, no models needed
 
-    Returns material, thickness, weight_g, volume_l (best available)
-    and an 'estimates' sub-dict with all four results for comparison.
+    Returns material, thickness, weight_g, volume_l and an 'estimates' sub-dict.
     """
     # ── Step 1: classify material + thickness ─────────────────────────────
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
@@ -759,17 +908,69 @@ def _estimate_garment_properties(label: str, image_path: Path) -> dict:
     material      = mat_thick.get("material", "unknown")
     thickness_key = mat_thick.get("thickness", "medium")
 
-    # ── Step 2: rule-based baseline ────────────────────────────────────────
+    # ── Step 2: rule-based baseline (always computed, used as fallback) ─────
     base = _rule_based_properties(label)
     rule_est = {"weight_g": base["weight_g"], "volume_l": base["volume_l"],
                 "note": "lookup table"}
 
-    # ── Step 3: 3D estimates (label drives fold/thickness/area params) ─────
-    midas_est     = _estimate_midas(image_path, label, material)
-    sam_est       = _estimate_sam(image_path, label, material)
-    midas_sam_est = _estimate_midas_sam(image_path, label, material)
+    # ── Step 3: run only the requested method ─────────────────────────────
+    from PIL import Image as _PILImage
+    img_size = _PILImage.open(str(image_path)).size
 
-    # ── Step 4: best available ─────────────────────────────────────────────
+    midas_est     = None
+    sam_est       = None
+    midas_sam_est = None
+
+    if method in ("midas", "midas_sam"):
+        bbox      = _get_garment_bbox(image_path)
+        depth_map = None
+        try:
+            depth_map = _get_depth_map(image_path)
+        except Exception as e:
+            print(f"  [MiDaS] skipped: {e}")
+
+    if method in ("sam", "midas_sam"):
+        if method == "sam":
+            bbox = _get_garment_bbox(image_path)
+        sam_mask = None
+        sam_area = None
+        try:
+            sam_mask = _get_sam_mask(image_path, bbox)
+            sam_area = int(sam_mask.sum())
+        except Exception as e:
+            print(f"  [SAM] skipped: {e}")
+
+    if method == "midas" and depth_map is not None:
+        try:
+            x1, y1, x2, y2 = [int(v) for v in bbox]
+            area_px         = (x2 - x1) * (y2 - y1)
+            r = _calc_volume_weight(area_px, img_size, label, material,
+                                    depth_map=depth_map[y1:y2, x1:x2])
+            r["note"] = "MiDaS depth"
+            midas_est = r
+        except Exception as e:
+            print(f"  [MiDaS] calc skipped: {e}")
+
+    elif method == "sam" and sam_mask is not None:
+        try:
+            r = _calc_volume_weight(sam_area, img_size, label, material,
+                                    depth_map=None)
+            r["note"] = "SAM mask area"
+            sam_est = r
+        except Exception as e:
+            print(f"  [SAM] calc skipped: {e}")
+
+    elif method == "midas_sam" and depth_map is not None and sam_mask is not None:
+        try:
+            depth_in_mask = depth_map[sam_mask] if sam_area > 0 else depth_map
+            r = _calc_volume_weight(sam_area, img_size, label, material,
+                                    depth_map=depth_in_mask)
+            r["note"] = "MiDaS depth + SAM mask"
+            midas_sam_est = r
+        except Exception as e:
+            print(f"  [MiDaS+SAM] calc skipped: {e}")
+
+    # ── Step 4: use selected result, fall back to rule_based ──────────────
     best = midas_sam_est or midas_est or sam_est or rule_est
 
     return {
@@ -870,12 +1071,11 @@ def _print_footer(vision: str) -> None:
 def _print_weight_volume_comparison(estimates: dict, material: str, thickness: str) -> None:
     """Print a 4-row comparison table of weight/volume for all estimation methods."""
     rows = [
-        ("rule_based", "Rule-based"),
+        ("midas_sam",  "MiDaS + SAM"),
         ("midas",      "MiDaS"),
         ("sam",        "SAM"),
-        ("midas_sam",  "MiDaS + SAM ★"),
+        ("rule_based", "Rule-based"),
     ]
-    # Determine which is the best available
     best_key = next(
         (k for k in ("midas_sam", "midas", "sam", "rule_based") if estimates.get(k)),
         "rule_based",
@@ -940,7 +1140,8 @@ def collect_image_paths_from_folder(folder: str) -> List[str]:
 def analyse_outfits(image_paths: List[str],
                     recommendations: List[DayRecommendation],
                     context: TripContext,
-                    vision: str = "yolo") -> List[dict]:
+                    vision: str = "yolo",
+                    depth: str = "midas_sam") -> List[dict]:
     """
     Analyse each wardrobe photo and print packing advice to the terminal.
 
@@ -949,7 +1150,8 @@ def analyse_outfits(image_paths: List[str],
     image_paths    : paths to wardrobe photos (jpg/png)
     recommendations: per-day clothing recommendations from recommender.py
     context        : TripContext (city, country, purpose)
-    vision         : "yolo" | "google" | "clip" | "both"  (default: "yolo")
+    vision         : "yolo" | "google" | "clip" | "both" | "cloth_tool"  (default: "yolo")
+    depth          : "midas_sam" | "midas" | "sam" | "rule_based"        (default: "midas_sam")
 
     Returns
     -------
@@ -978,6 +1180,30 @@ def analyse_outfits(image_paths: List[str],
             print(f"  [!] File not found: {path}")
             continue
 
+        if vision == "cloth_tool":
+            raw     = _detect_cloth_tool(path)
+            label   = _cloth_tool_readable_label(raw) if raw else _filename_fallback(path)
+            mat_key = raw.get("material_group", "mixed_unknown")
+            material  = _CLOTH_MATERIAL_MAP.get(mat_key, "unknown")
+            thickness = _CLOTH_THICKNESS_MAP.get(raw.get("weight_class", "medium"), "medium")
+            weight_g  = int(raw.get("approx_weight_g", 400))
+            volume_l  = round(raw.get("approx_volume_L", 2.0), 2)
+            adv = _gemini_advice(label, path, narrative, context)
+            if not adv:
+                adv = _rule_based_advice(label, recommendations)
+            _print_cloth_tool_result(path, raw, label, adv)
+            results.append({
+                "image_name":      path.name,
+                "detected_label":  label,
+                "material":        material,
+                "thickness":       thickness,
+                "weight_g":        weight_g,
+                "volume_l":        volume_l,
+                "cloth_tool_attrs":raw,
+                "advice":          adv,
+            })
+            continue
+
         if vision == "both":
             labels, advice = {}, {}
             for backend in backends:
@@ -988,7 +1214,7 @@ def analyse_outfits(image_paths: List[str],
             _print_both_results(path, labels, advice)
             # Use yolo label (most specific) for property estimation; fall back to first available
             primary_label = labels.get("yolo") or next(iter(labels.values()), path.stem)
-            props = _estimate_garment_properties(primary_label, path)
+            props = _estimate_garment_properties(primary_label, path, depth)
             _print_weight_volume_comparison(props["estimates"], props["material"], props["thickness"])
             results.append({
                 "image_name":              path.name,
@@ -1007,7 +1233,7 @@ def analyse_outfits(image_paths: List[str],
             if not adv:
                 adv = _rule_based_advice(label, recommendations)
             _print_single_result(path, vision, label, adv)
-            props = _estimate_garment_properties(label, path)
+            props = _estimate_garment_properties(label, path, depth)
             _print_weight_volume_comparison(props["estimates"], props["material"], props["thickness"])
             results.append({
                 "image_name":              path.name,
@@ -1033,6 +1259,9 @@ def _run_backend(backend: str, image_path: Path,
         return _detect_google_vision(image_path)
     if backend == "clip":
         return _detect_clip(image_path, recommender_items)
+    if backend == "cloth_tool":
+        raw = _detect_cloth_tool(image_path)
+        return _cloth_tool_readable_label(raw) if raw else _filename_fallback(image_path)
     return _filename_fallback(image_path, note=f"unknown backend '{backend}'")
 
 
