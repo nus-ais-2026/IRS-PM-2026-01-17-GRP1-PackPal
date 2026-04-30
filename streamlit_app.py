@@ -112,18 +112,29 @@ except ImportError as _e:
 try:
     from geocoder import get_location
     from historical_forecast import get_historical_forecast
-    from recommender import recommend_day, build_trip_packing_list
+    from recommender import recommend_day, build_trip_packing_list, calculate_needed_quantity
     from models import TripContext, DayForecast, DayRecommendation
     BACKEND_OK = True
 except ImportError as _e:
     print(f"[App] backend warning: {_e}"); BACKEND_OK = False
 
+# ── Computer Vision imports ─────────────────────────────────────────
+# Primary CV backend: cloth‑tool (EfficientNet‑B0 custom classifier)
+# Fallback: YOLO detection + rule‑based size estimation
 try:
-    from image_recognition import _detect_yolo, estimate_dimensions_from_cv
+    from image_recognition import (
+        _detect_yolo,                 # fallback YOLO label detection
+        estimate_dimensions_from_cv,  # fallback weight/volume estimator
+        _detect_cloth_tool,           # primary: run the cloth‑tool model
+        _cloth_tool_readable_label,   # format cloth‑tool prediction into text
+        _CLOTH_MATERIAL_MAP,          # material_group → fabric key
+        _CLOTH_THICKNESS_MAP,         # weight_class → thickness string
+        CLOTH_TOOL_MODEL,             # path to the trained model checkpoint
+    )
     CV_OK = True
 except ImportError as _e:
-    print(f"[App] CV warning: {_e}"); CV_OK = False
-
+    print(f"[App] CV warning: {_e}")
+    CV_OK = False
 try:
     from packing_optimizer import optimise_dynamic_items, _item_weight
     OPT_OK = True
@@ -737,16 +748,38 @@ if _slots_complete():
                     r2_url     = item.get("r2_url", "")
                     size_bytes = item.get("size_bytes", len(compressed))
 
-                    label_raw   = _detect_yolo(img_path)
-                    clean_label = label_raw.split("(")[0].strip() or "Unknown Garment"
-                    dims        = estimate_dimensions_from_cv(img_path, clean_label)
-                    thickness   = (
-                        "thick" if any(k in clean_label.lower()
-                                       for k in ("coat", "winter", "heavy")) else
-                        "thin"  if any(k in clean_label.lower()
-                                       for k in ("t-shirt", "shirt", "shorts")) else
-                        "medium"
-                    )
+                    # ── Garment label detection ──────────────────────────
+                    # Primary: use the custom cloth‑tool classifier when its
+                    # trained model file exists. It provides 9 attribute
+                    # predictions plus weight & volume directly.
+                    if CLOTH_TOOL_MODEL.exists():
+                        raw = _detect_cloth_tool(img_path)
+                        if raw:
+                            # Convert raw prediction to a readable label
+                            clean_label = _cloth_tool_readable_label(raw)
+                            # Map model outputs to internal thickness string
+                            thickness = _CLOTH_THICKNESS_MAP.get(
+                                raw.get("weight_class", "medium"), "medium"
+                            )
+                            weight_g = int(raw.get("approx_weight_g", 400))
+                            volume_l = round(raw.get("approx_volume_L", 2.0), 2)
+                        else:
+                            clean_label = "Unknown Garment"
+                            thickness   = "medium"
+                            weight_g    = 400
+                            volume_l    = 2.0
+                    else:
+                        # Fallback: YOLO detection + rule‑based estimation
+                        label_raw   = _detect_yolo(img_path)
+                        clean_label = label_raw.split("(")[0].strip() or "Unknown Garment"
+                        dims        = estimate_dimensions_from_cv(img_path, clean_label)
+                        thickness   = dims.get("thickness", "medium")
+                        weight_g    = dims.get("weight_g", 400)
+                        volume_l    = dims.get("volume_l", 2.0)
+
+                    # ── CLO insulation lookup ────────────────────────────
+                    # Uses the Neo4j Knowledge Graph (GarmentType node) if
+                    # available; otherwise a built‑in ASHRAE table.
                     base_clo_val = 0.15
                     if KG_OK:
                         try:
@@ -755,14 +788,15 @@ if _slots_complete():
                         except Exception:
                             pass
 
+                    # ── Save the analysis result ─────────────────────────
                     record = {"item_data_json": {
                         "r2_image_url":        r2_url,
                         "r2_size_bytes":       size_bytes,
                         "detected_label":      clean_label,
                         "thickness":           thickness,
                         "calculated_clo":      base_clo_val,
-                        "calculated_weight_g": dims["weight_g"],
-                        "calculated_volume_l": dims["volume_l"],
+                        "calculated_weight_g": weight_g,
+                        "calculated_volume_l": volume_l,
                     }}
                     st.session_state.wardrobe_items.append(record)
                     if SERVICES_OK and st.session_state.trip_id:
@@ -892,16 +926,16 @@ if _slots_complete():
                 min_temp  = 10
 
             for name in ml_pack.get("clothing", []):
-                qty = _estimate_initial_quantity(name, "ml_clothing",
-                                                 trip_days, min_temp)
+                # Use the shared quantity function that considers trip duration and purpose
+                qty = calculate_needed_quantity(name, trip_days, ctx.purpose)
                 draft.append({
                     "name": name, "category": "ml_clothing", "quantity": qty,
                     "weight_g": int(_item_weight(name) * 1000) if OPT_OK else 300,
                     "volume_l": round(_item_weight(name) * 4, 1) if OPT_OK else 1.0,
                 })
             for name in ml_pack.get("packing", []):
-                qty = _estimate_initial_quantity(name, "ml_gear",
-                                                 trip_days, min_temp)
+                qty = calculate_needed_quantity(name, trip_days, ctx.purpose)
+
                 draft.append({
                     "name": name, "category": "ml_gear", "quantity": qty,
                     "weight_g": int(_item_weight(name) * 1000) if OPT_OK else 150,
@@ -912,8 +946,7 @@ if _slots_complete():
                 d     = wi["item_data_json"]
                 label = d.get("detected_label", "")
                 if label.lower() not in existing_names:
-                    qty = _estimate_initial_quantity(label, "user_wardrobe",
-                                                     trip_days, min_temp)
+                    qty = calculate_needed_quantity(label, trip_days, ctx.purpose)
                     draft.append({
                         "name": label, "category": "user_wardrobe", "quantity": qty,
                         "weight_g": d.get("calculated_weight_g", 300),

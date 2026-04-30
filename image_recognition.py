@@ -58,7 +58,9 @@ _HERE         = Path(__file__).parent
 YOLO_CLS_PATH = _HERE / "yolo11n-cls.pt"
 # Prefer custom local YOLO weights if present (requested: yolo26x.pt).
 # Falls back to the previous default if the file is missing.
-YOLO_DET_PATH = _HERE / "yolo26x.pt" if (_HERE / "yolo26x.pt").exists() else (_HERE / "yolo11n.pt")
+#YOLO_DET_PATH = _HERE / "yolo26n.pt" if (_HERE / "yolo26x.pt").exists() else (_HERE / "yolo11n.pt")
+# Use YOLO26n — lightweight (~9MB), fast on CPU, ideal for HF Spaces demo.
+YOLO_DET_PATH = _HERE / "yolo26n.pt"
 
 VALID_VISION_MODES = ("yolo", "google", "clip", "both", "cloth-tool")
 
