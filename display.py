@@ -218,6 +218,7 @@ def display_rich(context, start_date, end_date, recommendations, trip_packing, n
 
     #call claude to get the suggestions
     if False:
+
         proc = subprocess.run(
         [
                                 "Claude",
@@ -241,26 +242,27 @@ def display_rich(context, start_date, end_date, recommendations, trip_packing, n
         msg = out or err or f"Claude playbook finished (exit code {proc.returncode})."
 
     else:
+        if False:
+            from google import genai
+            from google.genai import types
+            import PIL.Image                                                                   
+            
+                                    
+            #img = PIL.Image.open("img/IMG_1.jpg")
+            images = [PIL.Image.open(f"img/IMG_{i}.jpg") for i in range(3)]
 
-        from google import genai
-        from google.genai import types
-        import PIL.Image                                                                   
+            response = ""#client.models.generate_content(                                         
+                #model="gemini-2.5-flash",
+                #contents=["based on the trip day weather forcast and cloth suggestions:"+narratives+", please let me know what is this picture weight and volume ,should I take it during the trip? not too long explain", *images]  # PIL Image works directly             
+            #)                                                                                  
+            #print(response.text)
+            msg ="test"#response.text
         
-                                
-        #img = PIL.Image.open("img/IMG_1.jpg")
-        images = [PIL.Image.open(f"img/IMG_{i}.jpg") for i in range(3)]
-
-        response = ""#client.models.generate_content(                                         
-            #model="gemini-2.5-flash",
-            #contents=["based on the trip day weather forcast and cloth suggestions:"+narratives+", please let me know what is this picture weight and volume ,should I take it during the trip? not too long explain", *images]  # PIL Image works directly             
-        #)                                                                                  
-        #print(response.text)
-        msg ="test"#response.text
     
 
 
 
-    console.print(Panel(msg, title="[bold blue] Suggestions[/]", border_style="blue"))
+    #console.print(Panel(msg, title="[bold blue] Suggestions[/]", border_style="blue"))
 
 
 def display_plain(context, start_date, end_date, recommendations, trip_packing, n_years=None):
