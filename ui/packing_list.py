@@ -50,7 +50,7 @@ def render_packing_editor(
             ),
             "category": st.column_config.TextColumn(
                 "Type", disabled=True,
-                help="ml_clothing | ml_gear | user_wardrobe",
+                help="Clothing | Gear | Your Wardrobe",
             ),
             "quantity": st.column_config.NumberColumn(
                 "Qty", min_value=0, max_value=20, step=1,

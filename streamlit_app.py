@@ -307,14 +307,29 @@ def _load_all_trips():
 
 
 def _compress_image(file_bytes: bytes, max_dim: int = 1024, quality: int = 85) -> bytes:
+    """
+    Resize and recompress an uploaded image for storage and analysis.
+
+    - Resizes so the longest side ≤ ``max_dim`` pixels.
+    - Converts to RGB (strips alpha channel) so the image can be safely
+      saved as JPEG regardless of whether the original was PNG, WebP, etc.
+    - Saves as JPEG with the given ``quality``.
+
+    Returns the compressed JPEG bytes.
+    """
     from PIL import Image
     import io
     img = Image.open(io.BytesIO(file_bytes))
     img.thumbnail((max_dim, max_dim))
+
+    # JPEG does not support alpha transparency.
+    # Remove any alpha channel by converting to RGB before saving.
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=quality)
     return buf.getvalue()
-
 def _estimate_initial_quantity(item_name: str, category: str,
                                trip_days: int, min_temp: float) -> int:
     """
@@ -325,7 +340,7 @@ def _estimate_initial_quantity(item_name: str, category: str,
     name_lower = item_name.lower()
 
     # ── Clothing ─────────────────────────────────────────────────────────
-    if category in ("ml_clothing", "user_wardrobe"):
+    if category in ("Clothing", "Your Wardrobe"):
         # Tops: one for every 2 days, minimum 2
         if any(k in name_lower for k in ("t-shirt", "shirt", "top", "blouse",
                                           "sweater", "fleece", "pullover",
@@ -812,8 +827,10 @@ if _slots_complete():
                     st.error(f"Failed on {item['name']}: {_e}")
 
             prog.progress(100, text="Analysis complete!")
+            # Force the packing list to rebuild on next run
+            # so that newly analysed wardrobe items are included.
+            st.session_state.packing_list_items = []
             st.rerun()
-
 
 # ════════════════════════════════════════════════════════════════════════════════
 # SECTION 3 — Weather + CLO
@@ -929,7 +946,7 @@ if _slots_complete():
                 # Use the shared quantity function that considers trip duration and purpose
                 qty = calculate_needed_quantity(name, trip_days, ctx.purpose)
                 draft.append({
-                    "name": name, "category": "ml_clothing", "quantity": qty,
+                    "name": name, "category": "Clothing", "quantity": qty,
                     "weight_g": int(_item_weight(name) * 1000) if OPT_OK else 300,
                     "volume_l": round(_item_weight(name) * 4, 1) if OPT_OK else 1.0,
                 })
@@ -937,7 +954,7 @@ if _slots_complete():
                 qty = calculate_needed_quantity(name, trip_days, ctx.purpose)
 
                 draft.append({
-                    "name": name, "category": "ml_gear", "quantity": qty,
+                    "name": name, "category": "Gear", "quantity": qty,
                     "weight_g": int(_item_weight(name) * 1000) if OPT_OK else 150,
                     "volume_l": round(_item_weight(name) * 4, 1) if OPT_OK else 0.5,
                 })
@@ -948,7 +965,7 @@ if _slots_complete():
                 if label.lower() not in existing_names:
                     qty = calculate_needed_quantity(label, trip_days, ctx.purpose)
                     draft.append({
-                        "name": label, "category": "user_wardrobe", "quantity": qty,
+                        "name": label, "category": "Your Wardrobe", "quantity": qty,
                         "weight_g": d.get("calculated_weight_g", 300),
                         "volume_l": d.get("calculated_volume_l", 1.0),
                     })
@@ -1002,7 +1019,7 @@ if _slots_complete():
                             wardrobe_items       = st.session_state.wardrobe_items,
                             ml_recommended_items = [
                                 i["name"] for i in st.session_state.packing_list_items
-                                if i.get("category") != "user_wardrobe"
+                                if i.get("category") != "Your Wardrobe"
                             ],
                             weight_limit_kg = weight_limit,
                             volume_limit_l  = 40.0,
