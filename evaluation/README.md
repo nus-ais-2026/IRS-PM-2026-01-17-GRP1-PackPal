@@ -25,12 +25,11 @@ user surveys; those results are summarised directly in the report.
 From the **project root** (where `streamlit_app.py` lives), execute each
 script individually:
 
-python evaluation/eval_weather.py
-python evaluation/eval_recommender.py
-python evaluation/eval_slots.py
-python evaluation/eval_kg.py
-python evaluation/eval_optimizer.py
-
+    python evaluation/eval_weather.py
+    python evaluation/eval_recommender.py
+    python evaluation/eval_slots.py
+    python evaluation/eval_kg.py
+    python evaluation/eval_optimizer.py
 
 Each script prints its results to the console. No additional arguments or
 API keys are required—they use synthetic data or pre‑defined test sets.
