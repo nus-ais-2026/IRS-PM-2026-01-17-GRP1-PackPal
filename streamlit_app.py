@@ -1004,7 +1004,25 @@ if _slots_complete():
                 or st.session_state.baggage_limits.get("checked_kg", 20)
             )
             st.caption(f"Baggage weight limit: **{weight_limit} kg**")
+            # ── Comfort‑vs‑weight preference slider ─────────────────
+            # Default value depends on trip purpose
+            purpose = st.session_state.slots.get("purpose", "tourism")
+            default_comfort = {"business": 0.7, "tourism": 0.4, "visiting": 0.5}.get(purpose, 0.5)
 
+            st.markdown("**Packing preference**")
+            comfort_slider = st.slider(
+                "Slide towards ‘Comfort’ to keep more items; towards ‘Light’ to pack minimally.",
+                min_value=0.0, max_value=1.0, value=default_comfort, step=0.05,
+                help="0 = pack as light as possible  ·  0.5 = balance  ·  1 = maximise comfort",
+                label_visibility="visible",
+            )
+            if comfort_slider < 0.4:
+                opt_mode = "light"
+            elif comfort_slider > 0.6:
+                opt_mode = "aggressive"
+            else:
+                opt_mode = "balanced"
+            # ─────────────────────────────────────────────────────────
             if st.button("✂️ Optimise for Baggage Limits", type="primary",
                          disabled=not OPT_OK):
                 with st.spinner("Running Genetic Algorithm + 3D Volume Knapsack..."):
@@ -1022,9 +1040,10 @@ if _slots_complete():
                                 if i.get("category") != "Your Wardrobe"
                             ],
                             weight_limit_kg = weight_limit,
-                            volume_limit_l  = 40.0,
+                            # volume_limit_l is NOT passed → the optimizer uses luggage dimensions instead
                             forecasts       = st.session_state.forecasts,
                             context         = ctx,
+                            optimization_mode = opt_mode,
                         )
                         result_dict = result.to_dict()
                         st.session_state.optimization_result = result_dict
