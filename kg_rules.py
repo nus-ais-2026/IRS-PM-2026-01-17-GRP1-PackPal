@@ -64,7 +64,6 @@ _GARMENT_SEED = [
     ("City map or offline maps",        "gear",  0.00),
     ("Reusable water bottle",           "gear",  0.00),
     ("Small gift (optional)",           "gear",  0.00),
-    ("Phone charger",                   "gear",  0.00),
 ]
 
 # ── Airline baggage data ──────────────────────────────────────────────────────

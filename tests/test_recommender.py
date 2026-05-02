@@ -44,7 +44,7 @@ def test_features_output_shape():
 
 
 def test_training_data_generation():
-    """_generate_training_data should produce (n_samples, 10) X and (n_samples, 38) Y."""
+    """_generate_training_data should produce (n_samples, 10) X and (n_samples, |ALL_ITEMS|) Y."""
     n = 100
     X, Y = _generate_training_data(n_samples=n, seed=42)
     assert X.shape == (n, 10)

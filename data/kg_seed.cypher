@@ -62,7 +62,6 @@ MERGE (g:GarmentType {name: "Phone charger / power bank"})      SET g.base_clo =
 MERGE (g:GarmentType {name: "City map or offline maps"})        SET g.base_clo = 0.0,  g.category = "gear";
 MERGE (g:GarmentType {name: "Reusable water bottle"})           SET g.base_clo = 0.0,  g.category = "gear";
 MERGE (g:GarmentType {name: "Small gift (optional)"})           SET g.base_clo = 0.0,  g.category = "gear";
-MERGE (g:GarmentType {name: "Phone charger"})                   SET g.base_clo = 0.0,  g.category = "gear";
 
 // ── 2. FareClass nodes ────────────────────────────────────────────────────────
 MERGE (:FareClass {type: "economy"});

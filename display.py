@@ -578,14 +578,14 @@ def export_for_gui(optimization_result, trip_packing, photo_recommendations=None
         "Waterproof jacket", "Windproof jacket", "Waterproof snow boots",
         "Thermal socks", "Business attire", "Formal shoes",
         "Comfortable walking shoes", "Casual wear", "Smart casual outfit",
-        "Smart jacket",
+        "Smart jacket", "Sleepwear / pyjamas",
     }
     PACKING_ITEMS = {
         "Compact umbrella", "Waterproof bag cover", "Sunscreen SPF 50+",
         "Sunscreen SPF 30+", "Sunglasses", "Wide-brim hat",
         "Hand warmers", "Laptop bag", "Power adapter", "Business cards",
         "Day backpack", "Phone charger / power bank", "City map or offline maps",
-        "Reusable water bottle", "Small gift (optional)", "Phone charger",
+        "Reusable water bottle", "Small gift (optional)",
     }
 
     output = {}

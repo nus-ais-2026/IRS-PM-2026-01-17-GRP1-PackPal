@@ -59,7 +59,7 @@ ITEM_WEIGHTS: Dict[str, float] = {
     "Business cards": 0.05, "Day backpack": 0.60,
     "Phone charger / power bank": 0.30, "City map or offline maps": 0.05,
     "Reusable water bottle": 0.25, "Small gift (optional)": 0.30,
-    "Phone charger": 0.15, "Sleepwear / pyjamas": 0.35,
+    "Sleepwear / pyjamas": 0.35,
 }
 DEFAULT_WEIGHT = 0.30
 
@@ -82,7 +82,7 @@ ITEM_DIMS_CM: Dict[str, Tuple[float, float, float]] = {
     "Business cards": (10, 6, 1), "Day backpack": (45, 30, 15),
     "Phone charger / power bank": (15, 10, 3), "City map or offline maps": (20, 12, 1),
     "Reusable water bottle": (25, 8, 8), "Small gift (optional)": (20, 15, 10),
-    "Phone charger": (12, 8, 3), "Sleepwear / pyjamas": (30, 22, 3),
+    "Sleepwear / pyjamas": (30, 22, 3),
 }
 DEFAULT_DIMS = (20, 15, 5)
 

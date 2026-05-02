@@ -3,7 +3,7 @@ Evaluate clothing recommender – mean accuracy and F1 of KNN model.
 
 Trains on a subset of synthetic data and tests on a held‑out split.
 
-Output: mean accuracy and mean F1 across all 38 labels.
+Output: mean accuracy and mean F1 across all 37 labels.
 """
 import sys
 from pathlib import Path

@@ -80,7 +80,6 @@ PACKING_ITEMS = [
     "City map or offline maps",
     "Reusable water bottle",
     "Small gift (optional)",
-    "Phone charger",
 ]
 
 ALL_ITEMS = CLOTHING_ITEMS + PACKING_ITEMS
@@ -221,7 +220,8 @@ def _rule_labels(temp_avg, temp_min, temp_max, log_precip, wind, uv, cloud,
             on("Reusable water bottle")
 
     elif purpose == 2:  # visiting
-        on("Smart casual outfit", "Small gift (optional)", "Phone charger")
+        # "Phone charger / power bank" already on for all trips above
+        on("Smart casual outfit", "Small gift (optional)")
         if temp_max < 17:
             on("Smart jacket")
         if n_days > 3:
