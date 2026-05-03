@@ -1,0 +1,710 @@
+{
+  "context": {
+    "purpose": "tourism",
+    "city": "Beijing",
+    "country": "China"
+  },
+  "start_date": "2026-12-01",
+  "end_date": "2026-12-05",
+  "trip_days": 5,
+  "method": "theil_sen",
+  "model": "knn",
+  "forecasts": [
+    {
+      "date": "2026-12-01",
+      "uv_index_max": 5.4,
+      "cloud_cover_mean": 14.0,
+      "temp_min": -3.1,
+      "temp_max": 2.2,
+      "precipitation_mm": 0.0,
+      "wind_speed_max": 19.0,
+      "weather_code": 3
+    },
+    {
+      "date": "2026-12-02",
+      "uv_index_max": 5.3,
+      "cloud_cover_mean": 17.3,
+      "temp_min": -5.3,
+      "temp_max": 1.5,
+      "precipitation_mm": 0.0,
+      "wind_speed_max": 24.0,
+      "weather_code": 3
+    },
+    {
+      "date": "2026-12-03",
+      "uv_index_max": 5.4,
+      "cloud_cover_mean": 13.6,
+      "temp_min": -5.7,
+      "temp_max": 5.2,
+      "precipitation_mm": 0.0,
+      "wind_speed_max": 12.0,
+      "weather_code": 3
+    },
+    {
+      "date": "2026-12-04",
+      "uv_index_max": 6.0,
+      "cloud_cover_mean": 1.0,
+      "temp_min": -3.3,
+      "temp_max": 5.5,
+      "precipitation_mm": 0.0,
+      "wind_speed_max": 6.5,
+      "weather_code": 0
+    },
+    {
+      "date": "2026-12-05",
+      "uv_index_max": 5.3,
+      "cloud_cover_mean": 16.7,
+      "temp_min": -4.2,
+      "temp_max": 6.2,
+      "precipitation_mm": 0.0,
+      "wind_speed_max": 15.5,
+      "weather_code": 3
+    }
+  ],
+  "recommendations": [
+    {
+      "date": "2026-12-01",
+      "clothing": [
+        "Heavy winter coat",
+        "Thermal underlayer",
+        "Warm sweater or fleece",
+        "Gloves and scarf",
+        "Insulated boots",
+        "Waterproof snow boots",
+        "Thermal socks",
+        "Casual wear",
+        "Sleepwear / pyjamas"
+      ],
+      "packing": [
+        "Compact umbrella",
+        "Sunscreen SPF 30+",
+        "Sunglasses",
+        "Hand warmers",
+        "Phone charger / power bank"
+      ],
+      "alerts": [
+        "Moderate UV (index 5) — apply sunscreen outdoors"
+      ],
+      "summary": "Overcast, -3–2°C, UV 5"
+    },
+    {
+      "date": "2026-12-02",
+      "clothing": [
+        "Heavy winter coat",
+        "Thermal underlayer",
+        "Warm sweater or fleece",
+        "Gloves and scarf",
+        "Insulated boots",
+        "Thermal socks",
+        "Sleepwear / pyjamas"
+      ],
+      "packing": [
+        "Compact umbrella",
+        "Sunscreen SPF 30+",
+        "Sunglasses",
+        "Phone charger / power bank"
+      ],
+      "alerts": [
+        "Moderate UV (index 5) — apply sunscreen outdoors"
+      ],
+      "summary": "Overcast, -5–2°C, UV 5"
+    },
+    {
+      "date": "2026-12-03",
+      "clothing": [
+        "Heavy winter coat",
+        "Thermal underlayer",
+        "Warm sweater or fleece",
+        "Gloves and scarf",
+        "Insulated boots",
+        "Thermal socks",
+        "Smart casual outfit",
+        "Smart jacket",
+        "Sleepwear / pyjamas"
+      ],
+      "packing": [
+        "Compact umbrella",
+        "Sunscreen SPF 30+",
+        "Sunglasses",
+        "Phone charger / power bank",
+        "City map or offline maps",
+        "Small gift (optional)"
+      ],
+      "alerts": [
+        "Moderate UV (index 5) — apply sunscreen outdoors"
+      ],
+      "summary": "Overcast, -6–5°C, UV 5"
+    },
+    {
+      "date": "2026-12-04",
+      "clothing": [
+        "Heavy winter coat",
+        "Thermal underlayer",
+        "Warm sweater or fleece",
+        "Gloves and scarf",
+        "Insulated boots",
+        "Thermal socks",
+        "Smart jacket",
+        "Sleepwear / pyjamas"
+      ],
+      "packing": [
+        "Compact umbrella",
+        "Sunscreen SPF 30+",
+        "Sunglasses",
+        "Day backpack",
+        "Phone charger / power bank"
+      ],
+      "alerts": [
+        "Moderate UV (index 6) — apply sunscreen outdoors"
+      ],
+      "summary": "Clear sky, -3–6°C, UV 6"
+    },
+    {
+      "date": "2026-12-05",
+      "clothing": [
+        "Heavy winter coat",
+        "Thermal underlayer",
+        "Warm sweater or fleece",
+        "Gloves and scarf",
+        "Insulated boots",
+        "Waterproof jacket",
+        "Thermal socks",
+        "Comfortable walking shoes",
+        "Casual wear",
+        "Sleepwear / pyjamas"
+      ],
+      "packing": [
+        "Compact umbrella",
+        "Sunscreen SPF 50+",
+        "Sunscreen SPF 30+",
+        "Sunglasses",
+        "Wide-brim hat",
+        "Day backpack",
+        "Phone charger / power bank",
+        "City map or offline maps"
+      ],
+      "alerts": [
+        "Moderate UV (index 5) — apply sunscreen outdoors"
+      ],
+      "summary": "Overcast, -4–6°C, UV 5"
+    }
+  ],
+  "trip_packing": {
+    "clothing": [
+      "Heavy winter coat",
+      "Thermal underlayer",
+      "Warm sweater or fleece",
+      "Gloves and scarf",
+      "Insulated boots",
+      "Waterproof snow boots",
+      "Thermal socks",
+      "Casual wear",
+      "Sleepwear / pyjamas",
+      "Smart casual outfit",
+      "Smart jacket",
+      "Waterproof jacket",
+      "Comfortable walking shoes"
+    ],
+    "packing": [
+      "Compact umbrella",
+      "Sunscreen SPF 30+",
+      "Sunglasses",
+      "Hand warmers",
+      "Phone charger / power bank",
+      "City map or offline maps",
+      "Small gift (optional)",
+      "Day backpack",
+      "Sunscreen SPF 50+",
+      "Wide-brim hat"
+    ]
+  },
+  "suitability_scores": {
+    "Heavy winter coat": 1.0,
+    "Thermal underlayer": 1.0,
+    "Warm sweater or fleece": 1.0,
+    "Gloves and scarf": 0.946,
+    "Insulated boots": 1.0,
+    "Light jacket or fleece": 0.065,
+    "Long-sleeve shirt": 0.0,
+    "Jeans or trousers": 0.049,
+    "T-shirt or short sleeves": 0.065,
+    "Lightweight breathable clothing": 0.179,
+    "Shorts or light trousers": 0.0,
+    "Waterproof jacket": 0.207,
+    "Windproof jacket": 0.164,
+    "Waterproof snow boots": 0.51,
+    "Thermal socks": 1.0,
+    "Business attire": 0.157,
+    "Formal shoes": 0.157,
+    "Comfortable walking shoes": 0.45,
+    "Casual wear": 0.558,
+    "Smart casual outfit": 0.393,
+    "Smart jacket": 0.342,
+    "Sleepwear / pyjamas": 0.899,
+    "Compact umbrella": 1.0,
+    "Waterproof bag cover": 0.107,
+    "Sunscreen SPF 50+": 0.444,
+    "Sunscreen SPF 30+": 0.836,
+    "Sunglasses": 1.0,
+    "Wide-brim hat": 0.444,
+    "Hand warmers": 0.562,
+    "Laptop bag": 0.157,
+    "Power adapter": 0.157,
+    "Business cards": 0.157,
+    "Day backpack": 0.396,
+    "Phone charger / power bank": 0.883,
+    "City map or offline maps": 0.45,
+    "Reusable water bottle": 0.0,
+    "Small gift (optional)": 0.393
+  },
+  "wardrobe_items": [
+    {
+      "image_name": "100.png",
+      "detected_label": "trousers (spring autumn, cloth-tool 79%)",
+      "material": "denim",
+      "thickness": "medium",
+      "weight_g": 887,
+      "volume_l": 6.7,
+      "cloth_tool_attrs": {
+        "image": "100.png",
+        "cloth_type": "pants",
+        "cloth_type_conf": 0.79,
+        "season_group": "spring_autumn",
+        "season_group_conf": 0.897,
+        "material_group": "denim",
+        "material_group_conf": 0.948,
+        "fold_state": "unfolded",
+        "fold_state_conf": 0.983,
+        "weight_class": "medium",
+        "weight_class_conf": 0.981,
+        "folded_size_class": "l",
+        "folded_size_class_conf": 0.913,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 0.982,
+        "approx_weight_g": 887.8,
+        "approx_volume_L": 6.7
+      },
+      "advice": "Check the day-by-day clothing table to see if this garment matches the recommended items for your trip."
+    },
+    {
+      "image_name": "108.png",
+      "detected_label": "jacket (winter, cloth-tool 93%)",
+      "material": "leather/rubber",
+      "thickness": "thick",
+      "weight_g": 1397,
+      "volume_l": 8.0,
+      "cloth_tool_attrs": {
+        "image": "108.png",
+        "cloth_type": "jacket",
+        "cloth_type_conf": 0.927,
+        "season_group": "winter",
+        "season_group_conf": 0.963,
+        "material_group": "leather_like",
+        "material_group_conf": 0.955,
+        "fold_state": "unfolded",
+        "fold_state_conf": 0.986,
+        "weight_class": "heavy",
+        "weight_class_conf": 0.988,
+        "folded_size_class": "l",
+        "folded_size_class_conf": 0.958,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 0.987,
+        "approx_weight_g": 1397.2,
+        "approx_volume_L": 8.0
+      },
+      "advice": "An outer layer is on the packing list — this jacket looks suitable."
+    },
+    {
+      "image_name": "12.png",
+      "detected_label": "t-shirt (summer, cloth-tool 92%)",
+      "material": "cotton",
+      "thickness": "thin",
+      "weight_g": 223,
+      "volume_l": 2.8,
+      "cloth_tool_attrs": {
+        "image": "12.png",
+        "cloth_type": "t_shirt",
+        "cloth_type_conf": 0.919,
+        "season_group": "summer",
+        "season_group_conf": 0.982,
+        "material_group": "cotton_like",
+        "material_group_conf": 0.894,
+        "fold_state": "unfolded",
+        "fold_state_conf": 1.0,
+        "weight_class": "light",
+        "weight_class_conf": 0.961,
+        "folded_size_class": "l",
+        "folded_size_class_conf": 0.982,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 1.0,
+        "approx_weight_g": 223.9,
+        "approx_volume_L": 2.8
+      },
+      "advice": "Forecast may call for warmer layers — consider as a base layer only."
+    },
+    {
+      "image_name": "36.png",
+      "detected_label": "dress (summer, cloth-tool 52%)",
+      "material": "cotton",
+      "thickness": "thin",
+      "weight_g": 551,
+      "volume_l": 5.4,
+      "cloth_tool_attrs": {
+        "image": "36.png",
+        "cloth_type": "dress",
+        "cloth_type_conf": 0.519,
+        "season_group": "summer",
+        "season_group_conf": 0.89,
+        "material_group": "cotton_like",
+        "material_group_conf": 0.451,
+        "fold_state": "unfolded",
+        "fold_state_conf": 0.887,
+        "weight_class": "light",
+        "weight_class_conf": 0.847,
+        "folded_size_class": "l",
+        "folded_size_class_conf": 0.747,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 0.835,
+        "approx_weight_g": 551.0,
+        "approx_volume_L": 5.4
+      },
+      "advice": "Check the day-by-day clothing table to see if this garment matches the recommended items for your trip."
+    },
+    {
+      "image_name": "43.png",
+      "detected_label": "shirt (spring autumn, cloth-tool 50%)",
+      "material": "nylon/polyester",
+      "thickness": "medium",
+      "weight_g": 355,
+      "volume_l": 3.5,
+      "cloth_tool_attrs": {
+        "image": "43.png",
+        "cloth_type": "shirt",
+        "cloth_type_conf": 0.497,
+        "season_group": "spring_autumn",
+        "season_group_conf": 0.976,
+        "material_group": "synthetic_sportswear",
+        "material_group_conf": 0.879,
+        "fold_state": "unfolded",
+        "fold_state_conf": 1.0,
+        "weight_class": "medium",
+        "weight_class_conf": 0.789,
+        "folded_size_class": "l",
+        "folded_size_class_conf": 0.992,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 1.0,
+        "approx_weight_g": 355.4,
+        "approx_volume_L": 3.5
+      },
+      "advice": "Forecast may call for warmer layers — consider as a base layer only."
+    },
+    {
+      "image_name": "45.png",
+      "detected_label": "shirt (summer, cloth-tool 41%)",
+      "material": "cotton",
+      "thickness": "thin",
+      "weight_g": 344,
+      "volume_l": 3.3,
+      "cloth_tool_attrs": {
+        "image": "45.png",
+        "cloth_type": "shirt",
+        "cloth_type_conf": 0.408,
+        "season_group": "summer",
+        "season_group_conf": 0.837,
+        "material_group": "cotton_like",
+        "material_group_conf": 0.733,
+        "fold_state": "unfolded",
+        "fold_state_conf": 0.985,
+        "weight_class": "light",
+        "weight_class_conf": 0.972,
+        "folded_size_class": "l",
+        "folded_size_class_conf": 0.93,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 0.984,
+        "approx_weight_g": 344.8,
+        "approx_volume_L": 3.3
+      },
+      "advice": "Forecast may call for warmer layers — consider as a base layer only."
+    },
+    {
+      "image_name": "57.png",
+      "detected_label": "jacket (winter, cloth-tool 44%)",
+      "material": "leather/rubber",
+      "thickness": "thick",
+      "weight_g": 823,
+      "volume_l": 3.6,
+      "cloth_tool_attrs": {
+        "image": "57.png",
+        "cloth_type": "jacket",
+        "cloth_type_conf": 0.435,
+        "season_group": "winter",
+        "season_group_conf": 0.72,
+        "material_group": "leather_like",
+        "material_group_conf": 0.333,
+        "fold_state": "unfolded",
+        "fold_state_conf": 0.972,
+        "weight_class": "heavy",
+        "weight_class_conf": 0.611,
+        "folded_size_class": "m",
+        "folded_size_class_conf": 0.532,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 0.982,
+        "approx_weight_g": 823.6,
+        "approx_volume_L": 3.6
+      },
+      "advice": "An outer layer is on the packing list — this jacket looks suitable."
+    },
+    {
+      "image_name": "92.png",
+      "detected_label": "trousers (spring autumn, cloth-tool 34%)",
+      "material": "denim",
+      "thickness": "medium",
+      "weight_g": 1139,
+      "volume_l": 9.0,
+      "cloth_tool_attrs": {
+        "image": "92.png",
+        "cloth_type": "pants",
+        "cloth_type_conf": 0.341,
+        "season_group": "spring_autumn",
+        "season_group_conf": 0.869,
+        "material_group": "denim",
+        "material_group_conf": 0.679,
+        "fold_state": "unfolded",
+        "fold_state_conf": 0.893,
+        "weight_class": "medium",
+        "weight_class_conf": 0.89,
+        "folded_size_class": "l",
+        "folded_size_class_conf": 0.878,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 0.914,
+        "approx_weight_g": 1139.1,
+        "approx_volume_L": 9.0
+      },
+      "advice": "Check the day-by-day clothing table to see if this garment matches the recommended items for your trip."
+    },
+    {
+      "image_name": "outfit1.jpg",
+      "detected_label": "shirt (summer, cloth-tool 38%)",
+      "material": "nylon/polyester",
+      "thickness": "thin",
+      "weight_g": 188,
+      "volume_l": 3.0,
+      "cloth_tool_attrs": {
+        "image": "outfit1.jpg",
+        "cloth_type": "shirt",
+        "cloth_type_conf": 0.385,
+        "season_group": "summer",
+        "season_group_conf": 0.632,
+        "material_group": "synthetic_sportswear",
+        "material_group_conf": 0.696,
+        "fold_state": "unfolded",
+        "fold_state_conf": 0.999,
+        "weight_class": "light",
+        "weight_class_conf": 0.84,
+        "folded_size_class": "l",
+        "folded_size_class_conf": 0.866,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 0.999,
+        "approx_weight_g": 188.9,
+        "approx_volume_L": 3.0
+      },
+      "advice": "Forecast may call for warmer layers — consider as a base layer only."
+    },
+    {
+      "image_name": "outfit2.jpg",
+      "detected_label": "jacket (winter, cloth-tool 91%)",
+      "material": "leather/rubber",
+      "thickness": "thick",
+      "weight_g": 1077,
+      "volume_l": 5.7,
+      "cloth_tool_attrs": {
+        "image": "outfit2.jpg",
+        "cloth_type": "jacket",
+        "cloth_type_conf": 0.91,
+        "season_group": "winter",
+        "season_group_conf": 0.89,
+        "material_group": "leather_like",
+        "material_group_conf": 0.862,
+        "fold_state": "unfolded",
+        "fold_state_conf": 0.969,
+        "weight_class": "heavy",
+        "weight_class_conf": 0.832,
+        "folded_size_class": "l",
+        "folded_size_class_conf": 0.793,
+        "pressed_size_class": "compact",
+        "pressed_size_class_conf": 0.946,
+        "approx_weight_g": 1077.3,
+        "approx_volume_L": 5.7
+      },
+      "advice": "An outer layer is on the packing list — this jacket looks suitable."
+    }
+  ],
+  "photo_recommendations": {
+    "recommended_items": [
+      {
+        "item_name": "Casual wear",
+        "quantity_needed": 1,
+        "photos_available": [
+          {
+            "image_name": "36.png",
+            "detected_label": "dress (summer, cloth-tool 52%)",
+            "weight_g": 551,
+            "volume_l": 5.4,
+            "material": "cotton"
+          }
+        ],
+        "photos_to_pack": [
+          "36.png"
+        ],
+        "available_count": 1,
+        "pack_count": 1,
+        "missing_count": 0,
+        "suitability_score": 0.558
+      },
+      {
+        "item_name": "Smart jacket",
+        "quantity_needed": 1,
+        "photos_available": [
+          {
+            "image_name": "108.png",
+            "detected_label": "jacket (winter, cloth-tool 93%)",
+            "weight_g": 1397,
+            "volume_l": 8.0,
+            "material": "leather/rubber"
+          }
+        ],
+        "photos_to_pack": [
+          "108.png"
+        ],
+        "available_count": 3,
+        "pack_count": 1,
+        "missing_count": 0,
+        "suitability_score": 0.342
+      }
+    ],
+    "items_without_photos": [
+      {
+        "item_name": "Heavy winter coat",
+        "quantity_needed": 1,
+        "suitability_score": 1.0,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Thermal underlayer",
+        "quantity_needed": 5,
+        "suitability_score": 1.0,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Warm sweater or fleece",
+        "quantity_needed": 1,
+        "suitability_score": 1.0,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Insulated boots",
+        "quantity_needed": 1,
+        "suitability_score": 1.0,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Thermal socks",
+        "quantity_needed": 5,
+        "suitability_score": 1.0,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Compact umbrella",
+        "quantity_needed": 1,
+        "suitability_score": 1.0,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Sunglasses",
+        "quantity_needed": 1,
+        "suitability_score": 1.0,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Gloves and scarf",
+        "quantity_needed": 1,
+        "suitability_score": 0.946,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Sleepwear / pyjamas",
+        "quantity_needed": 2,
+        "suitability_score": 0.899,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Phone charger / power bank",
+        "quantity_needed": 1,
+        "suitability_score": 0.883,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Sunscreen SPF 30+",
+        "quantity_needed": 1,
+        "suitability_score": 0.836,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Hand warmers",
+        "quantity_needed": 1,
+        "suitability_score": 0.562,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Waterproof snow boots",
+        "quantity_needed": 1,
+        "suitability_score": 0.51,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Comfortable walking shoes",
+        "quantity_needed": 1,
+        "suitability_score": 0.45,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "City map or offline maps",
+        "quantity_needed": 1,
+        "suitability_score": 0.45,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Sunscreen SPF 50+",
+        "quantity_needed": 1,
+        "suitability_score": 0.444,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Wide-brim hat",
+        "quantity_needed": 1,
+        "suitability_score": 0.444,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Day backpack",
+        "quantity_needed": 1,
+        "suitability_score": 0.396,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Smart casual outfit",
+        "quantity_needed": 1,
+        "suitability_score": 0.393,
+        "note": "Not found in wardrobe — consider purchasing"
+      },
+      {
+        "item_name": "Small gift (optional)",
+        "quantity_needed": 1,
+        "suitability_score": 0.393,
+        "note": "Not found in wardrobe — consider purchasing"
+      }
+    ],
+    "total_items_to_pack": 2,
+    "total_items_missing": 0
+  }
+}
